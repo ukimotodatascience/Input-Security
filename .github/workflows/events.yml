@@ -1,0 +1,117 @@
+name: Run Events Information to Discord
+
+on:
+  schedule:
+    - cron: '20 * * * *'   # 毎時20分
+  workflow_dispatch:
+
+jobs:
+  run-main:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run main.py
+        id: run_connpass
+        continue-on-error: true
+        env:
+          FEED_URL: https://connpass.com/explore/ja.atom
+          WEBHOOK_URL: ${{ secrets.DISCORD_EVENT_WEBHOOK_URL }}
+          NAME: connpass
+          FETCH_MODE: hours
+          HOURS: 1
+          DIFF_DAYS: 1
+        run: |
+          max_retries=3
+          attempt=1
+
+          while [ $attempt -le $max_retries ]; do
+            echo "[connpass] Attempt ${attempt}/${max_retries}"
+
+            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
+              echo "[connpass] Succeeded on attempt ${attempt}."
+              exit 0
+            fi
+
+            if [ $attempt -lt $max_retries ]; then
+              echo "[connpass] Failed on attempt ${attempt}. Retrying..."
+              sleep 5
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "[connpass] Failed after ${max_retries} attempts."
+          exit 1
+
+      - name: Run main.py (alternate FEED_URL)
+        id: run_tech_play
+        continue-on-error: true
+        env:
+          FEED_URL: https://rss.techplay.jp/event/w3c-rss-format/rss.xml
+          WEBHOOK_URL: ${{ secrets.DISCORD_EVENT_WEBHOOK_URL }}
+          NAME: TECH PLAY
+          FETCH_MODE: hours
+          HOURS: 1
+          DIFF_DAYS: 1
+        run: |
+          max_retries=3
+          attempt=1
+
+          while [ $attempt -le $max_retries ]; do
+            echo "[TECH PLAY] Attempt ${attempt}/${max_retries}"
+
+            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
+              echo "[TECH PLAY] Succeeded on attempt ${attempt}."
+              exit 0
+            fi
+
+            if [ $attempt -lt $max_retries ]; then
+              echo "[TECH PLAY] Failed on attempt ${attempt}. Retrying..."
+              sleep 5
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "[TECH PLAY] Failed after ${max_retries} attempts."
+          exit 1
+
+      - name: Finalize result
+        if: always()
+        run: |
+          echo "run_connpass outcome: ${{ steps.run_connpass.outcome }}"
+          echo "run_tech_play  outcome: ${{ steps.run_tech_play.outcome }}"
+
+          failed=0
+          [ "${{ steps.run_connpass.outcome }}" = "failure" ] && failed=1
+          [ "${{ steps.run_tech_play.outcome }}" = "failure" ] && failed=1
+
+          if [ $failed -ne 0 ]; then
+            echo "One or more feed runs failed after retries."
+            echo "## ❌ Workflow failed" >> "$GITHUB_STEP_SUMMARY"
+            echo "At least one feed failed even after 3 attempts." >> "$GITHUB_STEP_SUMMARY"
+            echo "- run_connpass: ${{ steps.run_connpass.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- run_tech_play: ${{ steps.run_tech_play.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::One or more feed runs failed after 3 attempts."
+            exit 1
+          fi
+
+          echo "## ✅ Workflow succeeded" >> "$GITHUB_STEP_SUMMARY"
+          echo "All feed runs succeeded within up to 3 attempts." >> "$GITHUB_STEP_SUMMARY"
+          echo "All feed runs succeeded."
