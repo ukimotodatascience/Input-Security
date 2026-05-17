@@ -1,12 +1,12 @@
-name: Run Events Information to Discord
+name: Run Security Information to Discord
 
 on:
   schedule:
-    - cron: '20 * * * *'   # 毎時20分
+    - cron: '30 * * * *'   # 毎時30分
   workflow_dispatch:
 
 jobs:
-  run-main:
+  run-security:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -30,9 +30,10 @@ jobs:
         id: run_connpass
         continue-on-error: true
         env:
-          FEED_URL: https://connpass.com/explore/ja.atom
-          WEBHOOK_URL: ${{ secrets.DISCORD_EVENT_WEBHOOK_URL }}
-          NAME: connpass
+          FEED_URL: https://feeds.feedburner.com/TheHackersNews
+          WEBHOOK_URL: ${{ secrets.DISCORD_SECURITY_WEBHOOK_URL }}
+          NAME: The Hackers News
+          TRANSLATE: false
           FETCH_MODE: hours
           HOURS: 1
           DIFF_DAYS: 1
@@ -41,7 +42,7 @@ jobs:
           attempt=1
 
           while [ $attempt -le $max_retries ]; do
-            echo "[connpass] Attempt ${attempt}/${max_retries}"
+            echo "【The Hackers News】 Attempt ${attempt}/${max_retries}"
 
             if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
               echo "[connpass] Succeeded on attempt ${attempt}."
@@ -63,9 +64,9 @@ jobs:
         id: run_tech_play
         continue-on-error: true
         env:
-          FEED_URL: https://rss.techplay.jp/event/w3c-rss-format/rss.xml
-          WEBHOOK_URL: ${{ secrets.DISCORD_EVENT_WEBHOOK_URL }}
-          NAME: TECH PLAY
+          FEED_URL: https://cybersecuritynews.com/feed/
+          WEBHOOK_URL: ${{ secrets.DISCORD_SECURITY_WEBHOOK_URL }}
+          NAME: Cybersecurity News
           FETCH_MODE: hours
           HOURS: 1
           DIFF_DAYS: 1
@@ -74,40 +75,37 @@ jobs:
           attempt=1
 
           while [ $attempt -le $max_retries ]; do
-            echo "[TECH PLAY] Attempt ${attempt}/${max_retries}"
+            echo "【Cybersecurity News】 Attempt ${attempt}/${max_retries}"
 
             if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
-              echo "[TECH PLAY] Succeeded on attempt ${attempt}."
+              echo "【Cybersecurity News】 Succeeded on attempt ${attempt}."
               exit 0
             fi
 
             if [ $attempt -lt $max_retries ]; then
-              echo "[TECH PLAY] Failed on attempt ${attempt}. Retrying..."
+              echo "【Cybersecurity News】 Failed on attempt ${attempt}. Retrying..."
               sleep 5
             fi
 
             attempt=$((attempt + 1))
           done
 
-          echo "[TECH PLAY] Failed after ${max_retries} attempts."
+          echo "【Cybersecurity News】 Failed after ${max_retries} attempts."
           exit 1
 
       - name: Finalize result
         if: always()
         run: |
-          echo "run_connpass outcome: ${{ steps.run_connpass.outcome }}"
-          echo "run_tech_play  outcome: ${{ steps.run_tech_play.outcome }}"
+          echo "run_security outcome: ${{ steps.run_security.outcome }}"
 
           failed=0
-          [ "${{ steps.run_connpass.outcome }}" = "failure" ] && failed=1
-          [ "${{ steps.run_tech_play.outcome }}" = "failure" ] && failed=1
+          [ "${{ steps.run_security.outcome }}" = "failure" ] && failed=1
 
           if [ $failed -ne 0 ]; then
             echo "One or more feed runs failed after retries."
             echo "## ❌ Workflow failed" >> "$GITHUB_STEP_SUMMARY"
             echo "At least one feed failed even after 3 attempts." >> "$GITHUB_STEP_SUMMARY"
-            echo "- run_connpass: ${{ steps.run_connpass.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-            echo "- run_tech_play: ${{ steps.run_tech_play.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- run_security: ${{ steps.run_security.outcome }}" >> "$GITHUB_STEP_SUMMARY"
             echo "::error::One or more feed runs failed after 3 attempts."
             exit 1
           fi
