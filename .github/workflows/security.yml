@@ -27,7 +27,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Run main.py
-        id: run_connpass
+        id: run_the_hacker_news
         continue-on-error: true
         env:
           FEED_URL: https://feeds.feedburner.com/TheHackersNews
@@ -45,23 +45,23 @@ jobs:
             echo "【The Hackers News】 Attempt ${attempt}/${max_retries}"
 
             if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$TRANSLATE" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
-              echo "[connpass] Succeeded on attempt ${attempt}."
+              echo "[The Hackers News] Succeeded on attempt ${attempt}."
               exit 0
             fi
 
             if [ $attempt -lt $max_retries ]; then
-              echo "[connpass] Failed on attempt ${attempt}. Retrying..."
+              echo "[The Hackers News] Failed on attempt ${attempt}. Retrying..."
               sleep 5
             fi
 
             attempt=$((attempt + 1))
           done
 
-          echo "[connpass] Failed after ${max_retries} attempts."
+          echo "[the hacker news] Failed after ${max_retries} attempts."
           exit 1
 
       - name: Run main.py (alternate FEED_URL)
-        id: run_tech_play
+        id: run_cybersecurity_news
         continue-on-error: true
         env:
           FEED_URL: https://cybersecuritynews.com/feed/
@@ -92,6 +92,40 @@ jobs:
           done
 
           echo "【Cybersecurity News】 Failed after ${max_retries} attempts."
+          exit 1
+
+      - name: Run main.py
+        id: run_darkreading
+        continue-on-error: true
+        env:
+          FEED_URL: https://www.darkreading.com/rss.xml
+          WEBHOOK_URL: ${{ secrets.DISCORD_SECURITY_WEBHOOK_URL }}
+          NAME: Dark Reading
+          TRANSLATE: true
+          FETCH_MODE: hours
+          HOURS: 1
+          DIFF_DAYS: 1
+        run: |
+          max_retries=3
+          attempt=1
+
+          while [ $attempt -le $max_retries ]; do
+            echo "【Dark Reading】 Attempt ${attempt}/${max_retries}"
+
+            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$TRANSLATE" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
+              echo "[Dark Reading] Succeeded on attempt ${attempt}."
+              exit 0
+            fi
+
+            if [ $attempt -lt $max_retries ]; then
+              echo "[Dark Reading] Failed on attempt ${attempt}. Retrying..."
+              sleep 5
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "[Dark Reading] Failed after ${max_retries} attempts."
           exit 1
 
       - name: Finalize result
