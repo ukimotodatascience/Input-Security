@@ -44,7 +44,7 @@ jobs:
           while [ $attempt -le $max_retries ]; do
             echo "【The Hackers News】 Attempt ${attempt}/${max_retries}"
 
-            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$TRANSLATE" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
+            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$TRANSLATE" "$NAME" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
               echo "[The Hackers News] Succeeded on attempt ${attempt}."
               exit 0
             fi
@@ -78,7 +78,7 @@ jobs:
           while [ $attempt -le $max_retries ]; do
             echo "【Cybersecurity News】 Attempt ${attempt}/${max_retries}"
 
-            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$TRANSLATE" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
+            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$TRANSLATE" "$NAME" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
               echo "【Cybersecurity News】 Succeeded on attempt ${attempt}."
               exit 0
             fi
@@ -112,7 +112,7 @@ jobs:
           while [ $attempt -le $max_retries ]; do
             echo "【Dark Reading】 Attempt ${attempt}/${max_retries}"
 
-            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$NAME" "$TRANSLATE" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
+            if uv run python main.py "$FEED_URL" "$WEBHOOK_URL" "$TRANSLATE" "$NAME" "$FETCH_MODE" "$HOURS" "$DIFF_DAYS"; then
               echo "[Dark Reading] Succeeded on attempt ${attempt}."
               exit 0
             fi
